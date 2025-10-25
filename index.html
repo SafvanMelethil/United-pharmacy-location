@@ -17,38 +17,46 @@
 
   <main class="container my-4">
 
-    <!-- ✅ Search Section -->
+    <!-- Manual Search Section -->
     <div class="card shadow-sm mb-4">
       <div class="card-body">
         <h5 class="card-title">Search Material or Barcode</h5>
-        <p class="text-muted small mb-3">
-          Type the <strong>BARCODE NUMBER</strong> or 
-          <strong>MATERIAL ID</strong> to find its location.
-        </p>
+        <p class="text-muted small mb-3">Enter <strong>Material ID</strong> or <strong>Barcode Number</strong></p>
 
         <div class="input-group">
-          <input id="searchInput" type="text" class="form-control" placeholder="Enter material/barcode number" autocomplete="off"/>
+          <input id="searchInput" type="text" class="form-control" placeholder="Enter manually..." autocomplete="off"/>
           <button id="searchBtn" class="btn btn-primary">Search</button>
         </div>
 
-        <div id="status" class="small text-muted mt-2"></div>
+        <div id="status" class="small mt-2"></div>
       </div>
     </div>
 
-    <!-- ✅ Not Found Alert -->
+    <!-- GTIN Scanner Section -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Scan GTIN Barcode</h5>
+        <div class="input-group">
+          <input id="scanInput" type="text" class="form-control fs-5" placeholder="Scan here..." autocomplete="off" autofocus />
+        </div>
+        <div class="small text-muted mt-2">Use handheld scanner — auto search on Enter</div>
+      </div>
+    </div>
+
+    <!-- Not Found Alert -->
     <div id="notFound" class="alert alert-warning d-none mt-3">
       No record found for that number.
     </div>
 
-    <!-- ✅ Quick Location View -->
-    <div class="card mt-4 shadow-sm d-none" id="quickViewCard">
+    <!-- Quick Location View -->
+    <div id="quickViewCard" class="card mt-4 shadow-sm d-none">
       <div class="card-body">
         <h6 class="text-muted mb-2">Quick Location View</h6>
         <div id="quickView"></div>
       </div>
     </div>
 
-    <!-- ✅ Full Match List (unchanged) -->
+    <!-- Full Match List -->
     <div class="card mt-4 shadow-sm">
       <div class="card-body">
         <h6 class="text-muted mb-2">Matching Records</h6>
@@ -61,6 +69,7 @@
     </footer>
   </main>
 
+  <!-- Updated JS for GTIN extraction + scanning -->
   <script src="app.js"></script>
 </body>
 </html>
