@@ -1,11 +1,10 @@
-// app.js - now includes Quick Location View ✅
+// GTIN Search App - Updated
 (() => {
   let dataset = [];
-
-  function $id(id) { return document.getElementById(id); }
+  const $ = id => document.getElementById(id);
 
   function setStatus(msg, isError = false) {
-    const s = $id('status');
+    const s = $('status');
     if (s) {
       s.innerText = msg;
       s.style.color = isError ? 'crimson' : '';
@@ -13,146 +12,97 @@
     console.log('[STATUS]', msg);
   }
 
-  function safeText(x) {
-    if (x === null || x === undefined) return '';
-    return String(x);
+  const clean = x => String(x || '').trim();
+
+  // ✅ Robust GTIN extraction for mixed-content barcodes
+  function extractGTIN(barcode) {
+    if (!barcode) return '';
+    const stripped = barcode.replace(/\s+/g, '');
+    let match = stripped.match(/01(\d{13,14})/); // GS1 standard
+    let gtin = match ? match[1] : (stripped.match(/(\d{13,14})/)?.[1] || stripped);
+    // Remove leading zeros to match your JSON
+    return gtin.replace(/^0+/, '');
   }
 
-  // ✅ NEW: Quick Location View ────────────────
   function renderQuickView(matches) {
-    const card = $id('quickViewCard');
-    const container = $id('quickView');
-
-    if (!card || !container) return; // safety
-
-    if (!matches || matches.length === 0) {
-      card.classList.add('d-none');
-      container.innerHTML = "";
-      return;
-    }
-
+    const card = $('quickViewCard');
+    const container = $('quickView');
+    if (!matches.length) { card.classList.add('d-none'); container.innerHTML = ''; return; }
     card.classList.remove('d-none');
-
-    let html = `
+    container.innerHTML = `
       <table class="table table-sm table-bordered mb-0">
-        <thead>
-          <tr>
-            <th>MATERIAL_ID</th>
-            <th>ZONE</th>
-            <th>STORAGE_BIN</th>
-          </tr>
-        </thead>
+        <thead><tr><th>MATERIAL_ID</th><th>ZONE</th><th>STORAGE_BIN</th></tr></thead>
         <tbody>
-    `;
-
-    matches.forEach(m => {
-      html += `
-        <tr>
-          <td>${safeText(m.MATERIAL_ID)}</td>
-          <td>${safeText(m.ZONE)}</td>
-          <td>${safeText(m.STORAGE_BIN)}</td>
-        </tr>
-      `;
-    });
-
-    html += `</tbody></table>`;
-    container.innerHTML = html;
+          ${matches.map(m => `<tr>
+            <td>${clean(m.MATERIAL_ID)}</td>
+            <td>${clean(m.ZONE)}</td>
+            <td>${clean(m.STORAGE_BIN)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
   }
 
-  // ✅ Main match table (unchanged)
   function renderMatches(matches) {
-    const container = $id('matches');
-    if (!container) return;
+    const container = $('matches');
+    if (!matches.length) { container.innerHTML = '<div class="text-muted">No matches.</div>'; return; }
 
-    if (!matches || matches.length === 0) {
-      container.innerHTML = '<div class="text-muted">No matches.</div>';
-      return;
-    }
-
-    const fieldOrder = [
-      "MATERIAL_ID",
-      "MATERIAL_DESCRIPTION",
-      "ZONE",
-      "STORAGE_BIN",
-      "BATCH",
-      "VENDOR_NAME",
-      "BARCODE_NUMBER"
-    ];
-
-    let html = '<table class="table table-sm table-hover mb-0"><thead><tr>';
-    fieldOrder.forEach(k => html += `<th>${k}</th>`);
-    html += '</tr></thead><tbody>';
-
-    matches.forEach(row => {
-      html += '<tr>';
-      fieldOrder.forEach(k => html += `<td>${safeText(row[k])}</td>`);
-      html += '</tr>';
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    const fields = ["MATERIAL_ID","MATERIAL_DESCRIPTION","ZONE","STORAGE_BIN","BATCH","VENDOR_NAME","BARCODE_NUMBER"];
+    container.innerHTML = `
+      <table class="table table-sm table-hover mb-0">
+        <thead><tr>${fields.map(f => `<th>${f}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${matches.map(r => `<tr>${fields.map(f => `<td>${clean(r[f])}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>`;
   }
 
-  function doSearch() {
-    const input = $id('searchInput');
-    if (!input) {
-      console.error('searchInput missing');
-      return;
-    }
+  function doSearch(inputValue) {
+    const rawInput = inputValue || $('searchInput').value;
+    const q = extractGTIN(rawInput);
 
-    const q = input.value.trim();
-    if (!q) {
-      setStatus('Enter a number to search.');
-      return;
-    }
+    if (!q) { setStatus('Scan or enter GTIN / Barcode to search.', true); return; }
 
+    // ✅ Normalize both JSON and input by stripping leading zeros
     const matches = dataset.filter(r =>
-      safeText(r.BARCODE_NUMBER).trim() === q ||
-      safeText(r.MATERIAL_ID).trim() === q
+      clean(r.BARCODE_NUMBER).replace(/^0+/, '') === q ||
+      clean(r.MATERIAL_ID).replace(/^0+/, '') === q
     );
 
-    if (!matches || matches.length === 0) {
-      $id('notFound')?.classList.remove('d-none');
+    if (!matches.length) {
+      $('notFound').classList.remove('d-none');
       renderMatches([]);
-      renderQuickView([]); // ✅ clear quick view
-      setStatus('No record found.');
+      renderQuickView([]);
+      setStatus('No record found.', true);
     } else {
-      $id('notFound')?.classList.add('d-none');
+      $('notFound').classList.add('d-none');
       renderMatches(matches);
-      renderQuickView(matches); // ✅ show quick list
+      renderQuickView(matches);
       setStatus(`${matches.length} record(s) found.`);
     }
+
+    if ($('scanInput')) { $('scanInput').value = ''; $('scanInput').focus(); }
   }
 
   function attachListeners() {
-    const btn = $id('searchBtn');
-    const input = $id('searchInput');
-    btn?.addEventListener('click', doSearch);
-    input?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') doSearch();
-    });
+    $('searchInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    $('searchBtn')?.addEventListener('click', () => doSearch());
+    $('scanInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(e.target.value); });
   }
 
   async function loadData() {
     try {
-      setStatus('Loading local data...');
+      setStatus('Loading data...');
       const resp = await fetch('warehouse_data.json', { cache: 'no-cache' });
-      if (!resp.ok) throw new Error('fetch failed ' + resp.status);
-      const data = await resp.json();
-      if (!Array.isArray(data)) throw new Error("Data not array");
-      dataset = data;
-      setStatus(`Loaded ${dataset.length} records.`);
-      console.log("Sample:", dataset.slice(0,3));
-    } catch (err) {
-      console.error(err);
-      setStatus("Failed to load data file. Use local server.", true);
-      renderMatches([]);
-      renderQuickView([]);
+      dataset = await resp.json();
+      setStatus(`✅ Loaded ${dataset.length} records.`);
+    } catch {
+      setStatus('❌ Failed to load warehouse_data.json', true);
     }
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     attachListeners();
     loadData();
+    $('scanInput')?.focus();
   });
 })();
