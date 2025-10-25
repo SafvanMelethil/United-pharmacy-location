@@ -1,0 +1,5 @@
+
+body { background: linear-gradient(180deg,#f8fafc 0%, #eef2f6 100%); }
+header.bg-gradient { background: linear-gradient(90deg,#0d6efd,#6610f2); }
+.card { border: none; }
+#resultBody dt { font-weight: 600; }
